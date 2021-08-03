@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hello</title>
+</head>
+<body>
+<h1> Start a trip </h1>
+<form action="http://localhost:8080/new_trip" method="post" enctype="multipart/form-data">
+    <label>Name of trip <input type="text" name="trip_name" placeholder="Trip to Paris"><br></label>
+    <label>Name of driver <input type="text" name="driver_name" placeholder="Bob"><br></label>
+    <label>Email <input type="text" name="driver_email" placeholder="xxx@xxx.xxx"></label>
+    <label> SMS <input type="text" name="driver_sms" placeholder="xxx-xxx-xxxx"></label>
+
+
+    <br><br>
+
+
+    <table>
+        {% for n in range(5) %}
+        <tr>
+            <td><label>Participant {{n}} <input type="text" name="friends[{{n}}][name]" placeholder="friend{{n}}"><br></label></td>
+        </tr>
+        <tr>
+            <td><label>email <input type="text" name="friends[{{n}}][email]" placeholder="xxx@xxx.xxx"><br></label></td>
+            <td><label>sms <input type="text" name="friends[{{n}}][sms]" placeholder="xxx-xxx-xxxx"><br></label></td>
+        </tr>
+        {% endfor %}
+    </table>
+    <p><button type="submit">Submit</button></p>
+</form>
+
+
+<h1> Or join </h1>
+
+</body>
+</html>
