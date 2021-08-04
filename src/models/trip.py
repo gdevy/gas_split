@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Union
 from uuid import UUID
 
+from bson import ObjectId
 from pydantic import BaseModel
 
 
@@ -24,6 +25,7 @@ class Driver(Participant):
 class Receipt(BaseModel):
     image: bytes
     submitted_date: datetime
+    approved: bool
 
 
 class Trip(BaseModel):
@@ -32,4 +34,8 @@ class Trip(BaseModel):
 
     driver: Driver
     passengers: List[Passenger]
-    receipts: List[Receipt]
+    receipts: Union[List[Receipt], List[ObjectId]]
+
+    class Config:
+        arbitrary_types_allowed = True
+

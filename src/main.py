@@ -8,30 +8,22 @@ import secrets
 from bson import ObjectId
 from pydantic import BaseModel
 from pymongo import ReturnDocument
-from shortuuid import ShortUUID
-import bson
 
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.responses import HTMLResponse
 from fastapi.requests import Request
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from starlette.responses import RedirectResponse, StreamingResponse, FileResponse, Response
+from starlette.responses import RedirectResponse, Response
 
-from models.trip import Trip, Participant, Driver, Passenger, Receipt
+from models.trip import Trip, Driver, Passenger, Receipt
 from mongo_interface import db_client
-
-short_uuid = ShortUUID()
 
 store = Path(r'/Users/gregdevyatov/Projects/gas_split/store')
 
 app = FastAPI()
 app.mount("/static1", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="static/templates")
-
-
-def shorten_uuid(uuid: UUID) -> UUID:
-    return short_uuid.decode(short_uuid.encode(uuid)[:8])
 
 
 @app.get("/")
@@ -49,17 +41,25 @@ async def get_image(receipt_id: str):
 
 
 @app.post("/submit_receipt/{trip_id}")
-async def upload_image(trip_id: str, access_token: str = None, file: UploadFile = File(...)):
+async def submit_receipt(trip_id: str, access_token: str = None, file: UploadFile = File(...)):
+    trip = db_client['trips'].find_one(
+        {'id': UUID(bytes=base64.urlsafe_b64decode(trip_id)), }
+    )
+
+    print('trip', trip)
+    trip = Trip(**trip)
+
     new_receipt = Receipt(
         image=await file.read(),
-        submitted_date=datetime.now()
+        submitted_date=datetime.now(),
+        approved=trip.driver.access_token == access_token
     )
 
     new_receipt_id = db_client['receipts'].insert_one(new_receipt.dict())
 
     result = db_client['trips'].find_one_and_update(
         filter={
-            'id': UUID(bytes=base64.urlsafe_b64decode(trip_id)),
+            'id': trip.id,
         },
         update={
             "$push": {'receipts': new_receipt_id.inserted_id, }
@@ -121,7 +121,10 @@ def read_items(request: Request, trip_id: str, access_token: str):
     trip = db_client['trips'].find_one({'id': UUID(bytes=base64.urlsafe_b64decode(trip_id))})
 
     receipts = list(db_client['receipts'].find(
-        filter={'_id': {'$in': trip['receipts']}},
+        filter={
+            '_id': {'$in': trip['receipts']},
+            'approved': True,
+        },
     ))
     trip = Trip(
         **{**trip,
@@ -138,7 +141,7 @@ def read_items(request: Request, trip_id: str, access_token: str):
             'trip_name': trip.trip_name,
             'trip_id': trip_id,
             'driver': driver,
-            'participant': access_token,
+            'access_token': access_token,
             'participants': [p.dict() for p in trip.passengers],
             'receipts': [base64.urlsafe_b64encode(receipt['_id'].binary).decode() for receipt in receipts]
         })
