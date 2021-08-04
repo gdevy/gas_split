@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional, List
 from uuid import UUID
 
@@ -6,9 +7,9 @@ from pydantic import BaseModel
 
 class Participant(BaseModel):
     name: str
+    access_token: str
 
     email: str
-    sms: str
 
 
 class Passenger(Participant):
@@ -20,10 +21,15 @@ class Driver(Participant):
     pass
 
 
+class Receipt(BaseModel):
+    image: bytes
+    submitted_date: datetime
+
+
 class Trip(BaseModel):
     id: UUID
     trip_name: str
 
     driver: Driver
     passengers: List[Passenger]
-    receipt: Optional[str]
+    receipts: List[Receipt]
